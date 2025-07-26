@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Video Uploader</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    label, input, button { display: block; margin: 1rem 0; }
+    video { margin-top: 2rem; width: 100%; max-width: 600px; }
+  </style>
+</head>
+<body>
+
+  <h1>Upload Video</h1>
+
+  <label for="titleInput">Video Title:</label>
+  <input type="text" id="titleInput" placeholder="Enter title" />
+
+  <label for="fileInput">Select Video File:</label>
+  <input type="file" id="fileInput" accept="video/*" />
+
+  <button onclick="uploadVideo()">Upload</button>
+
+  <p id="uploadStatus"></p>
+  <hr>
+
+  <h2>Get Video by Key</h2>
+  <input type="text" id="videoKeyInput" placeholder="Enter video key (e.g. videos/abc.mp4)" />
+  <button onclick="loadVideo()">Load Video</button>
+
+  <p id="videoTitleDisplay"></p>
+  <video id="videoPlayer" controls></video>
+
+  <script>
+    async function uploadVideo() {
+      const fileInput = document.getElementById('fileInput');
+      const titleInput = document.getElementById('titleInput');
+      const file = fileInput.files[0];
+      const title = titleInput.value.trim();
+
+      if (!file) {
+        alert("Select a video file first.");
+        return;
+      }
+
+      if (!title) {
+        alert("Please enter a title.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("title", title);
+
+      const res = await fetch('http://localhost:5077/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('uploadStatus').innerText =
+          `Uploaded "${data.title}"\nKey: ${data.videoKey}\nURL expires in 1 hour.`;
+        console.log("Uploaded Video:", data);
+      } else {
+        const error = await res.text();
+        alert("Upload failed: " + error);
+      }
+    }
+
+    async function loadVideo() {
+      const key = document.getElementById('videoKeyInput').value.trim();
+      if (!key) {
+        alert("Enter a video key.");
+        return;
+      }
+
+      const res = await fetch(`http://localhost:5077/videos/${key}`);
+
+      if (res.ok) {
+        const data = await res.json();
+        const video = document.getElementById('videoPlayer');
+        const title = document.getElementById('videoTitleDisplay');
+
+        title.innerText = `Title: ${data.title}`;
+        video.src = data.videoUrl;
+        video.load();
+        video.play();
+      } else {
+        alert("Failed to get video.");
+      }
+    }
+  </script>
+
+</body>
+</html>
