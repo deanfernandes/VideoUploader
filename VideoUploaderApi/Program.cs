@@ -80,19 +80,28 @@ app.MapGet("/videos/{*key}", async (IAmazonS3 s3, string key) =>
     });
 
     string title = metadata.Metadata.Keys.Contains("x-amz-meta-title")
-    ? metadata.Metadata["x-amz-meta-title"]
-    : "(Untitled)";
-    
+        ? metadata.Metadata["x-amz-meta-title"]
+        : "(Untitled)";
+
     var presignedRequest = new GetPreSignedUrlRequest
     {
         BucketName = bucketName,
         Key = key,
         Expires = DateTime.UtcNow.AddMinutes(15)
     };
+    var videoUrl = s3.GetPreSignedURL(presignedRequest);
 
-    var url = s3.GetPreSignedURL(presignedRequest);
+    var thumbnailKey = key.Replace("videos/", "thumbnails/").Split('.')[0] + ".jpg";
 
-    return Results.Ok(new { VideoUrl = url, Title = title });
+    var thumbnailPresignedRequest = new GetPreSignedUrlRequest
+    {
+        BucketName = bucketName,
+        Key = thumbnailKey,
+        Expires = DateTime.UtcNow.AddMinutes(15)
+    };
+    var thumbnailUrl = s3.GetPreSignedURL(thumbnailPresignedRequest);
+
+    return Results.Ok(new { VideoUrl = videoUrl, ThumbnailUrl = thumbnailUrl, Title = title });
 });
 
 app.UseCors("FrontendPolicy");
